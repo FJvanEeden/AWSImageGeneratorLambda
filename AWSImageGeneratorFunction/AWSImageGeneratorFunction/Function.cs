@@ -23,7 +23,7 @@ namespace AWSImageGeneratorFunction
         await ProcessMessageAsync(message, context);
       }
 
-      Console.WriteLine("Processing complete.");
+      Console.WriteLine("Processing complete #99.");
       
       return $"Processed {evnt.Records.Count} records.";
     }
@@ -32,23 +32,24 @@ namespace AWSImageGeneratorFunction
     {
       context.Logger.LogLine($"Processed message {message.Body}");
 
-      //
-      await PublishToSNS();
+      message.Body += " YOUR MESSAGE WENT THROUGH A LAMBDA...";
+
+      await PublishToSNS(message.Body);
       await Task.CompletedTask;
     }
 
-    private async Task PublishToSNS()
+    private async Task PublishToSNS(string bodyFromSQS)
     {
-      string message = "Test at {DateTime.UtcNow.ToLongDateString()}";
+      string message = " Test at {DateTime.UtcNow.ToLongDateString()}: " + bodyFromSQS;
       var client = new AmazonSimpleNotificationServiceClient(region: Amazon.RegionEndpoint.USWest2);
 
-      var testRequest = new PublishRequest
+      var snsRequest = new PublishRequest
       {
         Message = message,
         TopicArn = "arn:aws:sns:us-west-2:494051244674:example-sns-receiver",
       };
 
-      var response = await client.PublishAsync(testRequest);
+      var response = await client.PublishAsync(snsRequest);
     }
   }
 }
