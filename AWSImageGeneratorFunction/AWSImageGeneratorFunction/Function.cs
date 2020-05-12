@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -62,39 +63,7 @@ namespace AWSImageGeneratorFunction
 
     public static Image GenerateImageFromByteArr(IEnumerable<byte> rawImageData, int width, int height)
     {
-      var x = 0;
-      var y = 0;
-      int i;
-      byte[] pixel = new byte[4];
-      byte[] newData = new byte[width * height * 4];
-
-      foreach (var data in rawImageData)
-      {
-        i = x % 4;
-        if (x > 0 && i == 0)
-        {
-          byte r = pixel[0];
-          byte g = pixel[1];
-          byte b = pixel[2];
-          byte a = pixel[3];
-          byte[] newPixel = new byte[] { b, g, r, a };
-          Array.Copy(newPixel, 0, newData, y, 4);
-          y += 4;
-        }
-        pixel[i] = data;
-        x++;
-      }
-
-      i = x % 4;
-      if (x > 0 && i == 0)
-      {
-        byte r = pixel[0];
-        byte g = pixel[1];
-        byte b = pixel[2];
-        byte a = pixel[3];
-        byte[] newPixel = new byte[] { b, g, r, a };
-        Array.Copy(newPixel, 0, newData, y, 4);
-      }
+      byte[] newData = rawImageData.ToArray();
 
       using (Bitmap bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb))
       {
@@ -104,6 +73,57 @@ namespace AWSImageGeneratorFunction
 
         bmp.UnlockBits(bmpData);
         return (Image)bmp.Clone();
+      }
+    }
+
+    // Test Image
+    private static IEnumerable<byte> RedImageWithBlueCircle(int width, int height)
+    {
+      int index = 0;
+      // { b, g, r, a };
+      var red = new byte[] { 0, 0, 255, 255 };
+      var blue = new byte[] { 255, 0, 0, 255 };
+      var green = new byte[] { 0, 255, 0, 255 };
+
+      int blueXOffset = 300;
+      int blueYOffset = 200;
+      int blueInnerRadius = 300;
+      int blueOuterRadius = 500;
+
+      int greenXOffset = 800;
+      int greenYOffset = 700;
+      int greenInnerRadius = 400;
+      int greenOuterRadius = 500;
+
+      for (int y = 0; y < height; y++)
+      {
+        for (int x = 0; x < width; x++)
+        {
+          if (((x - blueXOffset) * (x - blueXOffset) + (y - blueYOffset) * (y - blueYOffset) > blueInnerRadius * blueInnerRadius) && ((x - blueXOffset) * (x - blueXOffset) + (y - blueYOffset) * (y - blueYOffset) < blueOuterRadius * blueOuterRadius))
+          {
+            for (int p = 0; p < 4; p++)
+            {
+              yield return blue[index % 4];
+              index++;
+            }
+          }
+          else if (((x - greenXOffset) * (x - greenXOffset) + (y - greenYOffset) * (y - greenYOffset) > greenInnerRadius * greenInnerRadius) && ((x - greenXOffset) * (x - greenXOffset) + (y - greenYOffset) * (y - greenYOffset) < greenOuterRadius * greenOuterRadius))
+          {
+            for (int p = 0; p < 4; p++)
+            {
+              yield return green[index % 4];
+              index++;
+            }
+          }
+          else
+          {
+            for (int p = 0; p < 4; p++)
+            {
+              yield return red[index % 4];
+              index++;
+            }
+          }
+        }
       }
     }
 
